@@ -1,0 +1,85 @@
+---
+- name: "Test sharepoint files"
+  hosts: localhost
+  gather_facts: false
+  vars:
+    # client_id: "{{ lookup('env', 'SHAREPOINT_CLIENT_ID') }}"
+    # client_secret: "{{ lookup('env', 'SHAREPOINT_CLIENT_SECRET') }}"
+    # tenant_name: "{{ lookup('env', 'SHAREPOINT_TENANT_NAME') }}"
+    # tenant_id: "{{ lookup('env', 'SHAREPOINT_TENANT_ID') }}"
+    # site_name: "{{ lookup('env', 'SHAREPOINT_SITE_NAME') }}"
+    remote_file_path: "{{ lookup('env', 'REMOVE_FILE_PATH') }}"
+
+
+  tasks:
+
+    - name: "Push file to test folder"
+      sharepoint:
+        # client_id: "{{ client_id }}"
+        # client_secret: "{{ client_secret }}"
+        # tenant_name: "{{ tenant_name }}"
+        # tenant_id: "{{ tenant_id }}"
+        # site_name: "{{ site_name }}"
+
+        local_file_path: /Users/cedricd
+        local_file_name: test.txt
+        remote_file_path: "{{ remote_file_path }}"
+
+    - name: "Get file from sharepoint"
+      sharepoint:
+        method : get
+        # client_id: "{{ client_id }}"
+        # client_secret: "{{ client_secret }}"
+        # tenant_name: "{{ tenant_name }}"
+        # tenant_id: "{{ tenant_id }}"
+        # site_name: "{{ site_name }}"
+
+        remote_file_path: "{{ remote_file_path }}"
+        remote_file_name: test.txt
+        local_file_path: /Users/cedricd
+        local_file_name: another_test.txt
+
+    - name: "Delete file in sharepoint"
+      sharepoint:
+        method : delete
+        # client_id: "{{ client_id }}"
+        # client_secret: "{{ client_secret }}"
+        # tenant_name: "{{ tenant_name }}"
+        # tenant_id: "{{ tenant_id }}"
+        # site_name: "{{ site_name }}"
+
+        remote_file_path: "{{ remote_file_path }}"
+        remote_file_name: test.txt
+
+    - name: "List the contents of a folderr"
+      sharepoint:
+        method : list
+        # client_id: "{{ client_id }}"
+        # client_secret: "{{ client_secret }}"
+        # tenant_name: "{{ tenant_name }}"
+        # tenant_id: "{{ tenant_id }}"
+        # site_name: "{{ site_name }}"
+
+        remote_file_path: "{{ remote_file_path }}"
+
+    - name: "Create folder in sharepoint"
+      sharepoint:
+        method : mkdir
+        # client_id: "{{ client_id }}"
+        # client_secret: "{{ client_secret }}"
+        # tenant_name: "{{ tenant_name }}"
+        # tenant_id: "{{ tenant_id }}"
+        # site_name: "{{ site_name }}"
+
+        remote_file_path: "{{ remote_file_path }}/plop"
+
+    - name: "Remove folder in sharepoint"
+      sharepoint:
+        method : rmdir
+        # client_id: "{{ client_id }}"
+        # client_secret: "{{ client_secret }}"
+        # tenant_name: "{{ tenant_name }}"
+        # tenant_id: "{{ tenant_id }}"
+        # site_name: "{{ site_name }}"
+
+        remote_file_path: "{{ remote_file_path }}/plop"
