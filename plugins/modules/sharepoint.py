@@ -14,7 +14,7 @@ __metaclass__ = type
 
 
 ANSIBLE_METADATA = {
-    "metadata_version": "1.0",
+    "metadata_version": "1.1",
     "status": ["preview"],
     "supported_by": "community",
 }
@@ -255,7 +255,9 @@ def main():
     resource = module.params.get("resource")
     if resource is None:
         # Office 365 SharePoint Online 	00000003-0000-0ff1-ce00-000000000000
-        resource = f"00000003-0000-0ff1-ce00-000000000000/{tenant_name}.sharepoint.com@{tenant_id}"
+        resource = "00000003-0000-0ff1-ce00-000000000000/{}.sharepoint.com@{}".format(
+            tenant_name, tenant_id
+        )
     grant_type = module.params.get("grant_type")
 
     # Payload for token
@@ -268,7 +270,7 @@ def main():
 
     # Auth url for token
     url_get_token = (
-        f"https://accounts.accesscontrol.windows.net/{tenant_id}/tokens/oAuth/2"
+        "https://accounts.accesscontrol.windows.net/{}/tokens/oAuth/2".format(tenant_id)
     )
 
     response_token = requests.get(url_get_token, data=payload)
@@ -278,7 +280,7 @@ def main():
 
         # headers
         headers = {
-            "Authorization": f"Bearer {token}",
+            "Authorization": "Bearer {}".format(token),
             "Content-Type": "application/json;odata=verbose",
             "Accept": "application/json;odata=verbose",
         }
@@ -289,11 +291,15 @@ def main():
                 # https://learn.microsoft.com/en-us/sharepoint/dev/sp-add-ins/working-with-folders-and-files-with-rest#working-with-files-by-using-rest
                 with open(local_file_fullpath, "rb") as file:
 
-                    url = f"https://{tenant_name}.sharepoint.com/sites/{site_name}"
-                    command = f"_api/web/GetFolderByServerRelativeURL('/sites/{site_name}/{remote_file_path}')/Files/add(url='{remote_file_name}',overwrite=true)"
+                    url = "https://{}.sharepoint.com/sites/{}".format(
+                        tenant_name, site_name
+                    )
+                    command = "_api/web/GetFolderByServerRelativeURL('/sites/{}/{}')/Files/add(url='{}',overwrite=true)".format(
+                        site_name, remote_file_path, remote_file_name
+                    )
 
                     response = requests.post(
-                        f"{url}/{command}", headers=headers, data=file.read()
+                        "{}/{}".format(url, command), headers=headers, data=file.read()
                     )
 
                 if response.ok:
@@ -312,13 +318,19 @@ def main():
                     )
 
             except FileNotFoundError as e:
-                module.fail_json(msg=f"The file {local_file_fullpath} is missing.")
+                module.fail_json(
+                    msg="The file {} is missing.".format(local_file_fullpath)
+                )
 
         if method == "get":
-            url = f"https://{tenant_name}.sharepoint.com/sites/{site_name}"
-            command = f"/_api/web/GetFileByServerRelativeUrl('/sites/{site_name}/{remote_file_path}/{remote_file_name}')/$value"
+            url = "https://{}.sharepoint.com/sites/{}".format(tenant_name, site_name)
+            command = (
+                "/_api/web/GetFileByServerRelativeUrl('/sites/{}/{}/{}')/$value".format(
+                    site_name, remote_file_path, remote_file_name
+                )
+            )
 
-            response = requests.get(f"{url}/{command}", headers=headers)
+            response = requests.get("{}/{}".format(url, command), headers=headers)
             if response.ok:
                 local_file_fullpath = os.path.join(local_file_path, local_file_name)
                 content = response.content
@@ -332,7 +344,9 @@ def main():
                         # headers=headers,
                     )
                 except FileNotFoundError as e:
-                    module.fail_json(msg=f"The file {local_file_fullpath} is missing.")
+                    module.fail_json(
+                        msg="The file {} is missing.".format(local_file_fullpath)
+                    )
             else:
                 module.fail_json(
                     msg="Something went wrong...",
@@ -344,10 +358,12 @@ def main():
         if method == "delete":
             headers["X-HTTP-Method"] = "DELETE"
 
-            url = f"https://{tenant_name}.sharepoint.com/sites/{site_name}"
-            command = f"/_api/web/GetFileByServerRelativeUrl('/sites/{site_name}/{remote_file_path}/{remote_file_name}')"
+            url = "https://{}.sharepoint.com/sites/{}".format(tenant_name, site_name)
+            command = "/_api/web/GetFileByServerRelativeUrl('/sites/{}/{}/{}')".format(
+                site_name, remote_file_path, remote_file_name
+            )
 
-            response = requests.post(f"{url}/{command}", headers=headers)
+            response = requests.post("{}/{}".format(url, command), headers=headers)
             if response.ok:
                 module.exit_json(
                     changed=True,
@@ -363,13 +379,17 @@ def main():
                 )
         if method == "list":
             headers["Accept"] = "application/json;odata=nometadata"
-            url = f"https://{tenant_name}.sharepoint.com/sites/{site_name}"
+            url = "https://{}.sharepoint.com/sites/{}".format(tenant_name, site_name)
 
             result = []
             for kind in ["files", "folders"]:
-                command = f"/_api/web/GetFolderByServerRelativeUrl('/sites/{site_name}/{remote_file_path}')/{kind}"
+                command = (
+                    "/_api/web/GetFolderByServerRelativeUrl('/sites/{}/{}')/{}".format(
+                        site_name, remote_file_path, kind
+                    )
+                )
 
-                response = requests.get(f"{url}/{command}", headers=headers)
+                response = requests.get("{}/{}".format(url, command), headers=headers)
                 if response.ok:
                     for k in response.json()["value"]:
                         result.append(
@@ -399,14 +419,16 @@ def main():
 
         if method == "mkdir":
 
-            url = f"https://{tenant_name}.sharepoint.com/sites/{site_name}"
+            url = "https://{}.sharepoint.com/sites/{}".format(tenant_name, site_name)
             command = "/_api/web/folders"
             data = dict()
             data["__metadata"] = {"type": "SP.Folder"}
-            data["ServerRelativeUrl"] = f"/sites/{site_name}{remote_file_path}"
+            data["ServerRelativeUrl"] = "/sites/{}{}".format(
+                site_name, remote_file_path
+            )
 
             response = requests.post(
-                f"{url}/{command}", headers=headers, data=json.dumps(data)
+                "{}/{}".format(url, command), headers=headers, data=json.dumps(data)
             )
             if response.ok:
                 module.exit_json(
@@ -426,10 +448,12 @@ def main():
         if method == "rmdir":
             headers["X-HTTP-Method"] = "DELETE"
 
-            url = f"https://{tenant_name}.sharepoint.com/sites/{site_name}"
-            command = f"/_api/web/GetFolderByServerRelativeUrl('/sites/{site_name}/{remote_file_path}')"
+            url = "https://{}.sharepoint.com/sites/{}".format(tenant_name, site_name)
+            command = "/_api/web/GetFolderByServerRelativeUrl('/sites/{}/{}')".format(
+                site_name, remote_file_path
+            )
 
-            response = requests.post(f"{url}/{command}", headers=headers)
+            response = requests.post("{}/{}".format(url, command), headers=headers)
             if response.ok:
                 module.exit_json(
                     changed=True,
@@ -447,7 +471,9 @@ def main():
 
     else:
         module.fail_json(
-            msg=f"The OAuth 2.0 authorization failed (code: {response_token.status_code})",
+            msg="The OAuth 2.0 authorization failed (code: {})".format(
+                response_token.status_code
+            ),
             response=response_token.text,
         )
 
