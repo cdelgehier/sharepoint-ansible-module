@@ -1,0 +1,41 @@
+---
+name: Release on demand
+on:
+  repository_dispatch:
+    types: [semantic-release]
+  # $ curl -v -H "Accept: application/vnd.github.everest-preview+json" \
+  #           -H "Authorization: token ${GITHUB_TOKEN}" \
+  #           https://api.github.com/repos/[user]/[repository]/dispatches \
+  #           -d '{ "event_type": "semantic-release" }'
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          # node-version: 16
+          node-version: 'lts/*'
+
+      # - name: Cache dependencies
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: ~/.npm
+      #     key: ${{ runner.os }}-node-v1
+
+      - name: Install dependencies
+        shell: bash
+        run: npm install --global --save-dev semantic-release @semantic-release/changelog @semantic-release/github @semantic-release/exec @semantic-release/git @semantic-release/release-notes-generator conventional-changelog-conventionalcommits
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: semantic-release
+...
