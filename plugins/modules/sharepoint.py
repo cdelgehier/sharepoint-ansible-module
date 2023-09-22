@@ -29,6 +29,16 @@ description:
 version_added: "2.9"
 
 options:
+  client_certificate_path:
+    type: str
+    description:
+      - The path to the certificate file.
+
+  client_certificate_password:
+    type: str
+    description:
+      - The password for the certificate.
+
   client_id:
     type: str
     description:
@@ -233,6 +243,8 @@ def main():
             type="str",
             default="client_credentials",
         ),
+        client_certificate_path=dict(type="str", required=False),
+        client_certificate_password=dict(type="str", required=False, no_log=True),
     )
 
     module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=False)
@@ -259,21 +271,36 @@ def main():
             tenant_name, tenant_id
         )
     grant_type = module.params.get("grant_type")
-
-    # Payload for token
-    payload = {
-        "grant_type": grant_type,
-        "client_id": client_id,
-        "client_secret": client_secret,
-        "resource": resource,
-    }
+    client_certificate_path = module.params.get("client_certificate_path")
+    client_certificate_password = module.params.get("client_certificate_password")
 
     # Auth url for token
     url_get_token = (
         "https://accounts.accesscontrol.windows.net/{}/tokens/oAuth/2".format(tenant_id)
     )
 
-    response_token = requests.get(url_get_token, data=payload)
+    if client_certificate_path and client_certificate_password:
+        # certificate is provided
+        payload = {
+            "grant_type": grant_type,
+            "client_id": client_id,
+            "resource": resource,
+        }
+        cert = (client_certificate_path, client_certificate_password)
+        # cert = (client_certificate_path, client_certificate_key_path), verify=client_certificate_RootCA_path)
+        response_token = requests.post(url_get_token, data=payload, cert=cert)
+    elif client_secret:
+        payload = {
+            "grant_type": grant_type,
+            "client_id": client_id,
+            "resource": resource,
+            "client_secret": client_secret,
+        }
+        response_token = requests.post(url_get_token, data=payload)
+    else:
+        module.fail_json(
+            msg="A client_secret or a client_certificate_path is mandatory"
+        )
 
     if response_token.ok:
         token = json.loads(response_token.text)["access_token"]
